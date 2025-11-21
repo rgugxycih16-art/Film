@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyper-Realistic SVG Fan with Physics Ribbon + Synth Sound</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .fan-container {
+            position: relative;
+            width: 500px;
+            height: 650px;
+            filter: drop-shadow(0px 20px 30px rgba(0,0,0,0.6));
+        }
+
+        .controls-hint {
+            position: absolute;
+            bottom: -40px;
+            width: 100%;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        .control-btn {
+            cursor: pointer;
+            transition: filter 0.2s;
+        }
+        .control-btn:hover {
+            filter: brightness(1.2);
+        }
+        .control-btn:active {
+            transform: scale(0.95);
+            transform-box: fill-box;
+            transform-origin: center;
+        }
+
+        .knob {
+            cursor: grab;
+        }
+
+        /* 绳子的样式 */
+        #wind-ribbon {
+            fill: none;
+            stroke: #ff3333;
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.5));
+            pointer-events: none;
+        }
+        
+        /* 绳结 */
+        #ribbon-knot {
+            fill: #cc0000;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="fan-container">
+        <svg viewBox="0 0 500 700" id="fanSVG">
+            <defs>
+                <linearGradient id="chrome" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#999" />
+                    <stop offset="40%" stop-color="#fff" />
+                    <stop offset="60%" stop-color="#ccc" />
+                    <stop offset="100%" stop-color="#888" />
+                </linearGradient>
+                
+                <linearGradient id="metal-vertical" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#555" />
+                    <stop offset="20%" stop-color="#aaa" />
+                    <stop offset="50%" stop-color="#eee" />
+                    <stop offset="80%" stop-color="#aaa" />
+                    <stop offset="100%" stop-color="#555" />
+                </linearGradient>
+
+                <linearGradient id="blade-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#3a7bd5" stop-opacity="0.9"/>
+                    <stop offset="100%" stop-color="#00d2ff" stop-opacity="0.8"/>
+                </linearGradient>
+
+                <filter id="soft-shadow">
+                    <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+                    <feOffset dx="2" dy="4" result="offsetblur" />
+                    <feComponentTransfer>
+                        <feFuncA type="linear" slope="0.3" />
+                    </feComponentTransfer>
+                    <feMerge>
+                        <feMergeNode />
+                        <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                </filter>
+
+                <filter id="inner-depth">
+                    <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
+                    <feOffset dx="0" dy="2"/>
+                    <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1"/>
+                    <feFlood flood-color="black" flood-opacity="0.5"/>
+                    <feComposite in2="blur" operator="in"/>
+                    <feComposite in2="SourceGraphic" operator="over"/>
+                </filter>
+                
+                <filter id="led-glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+
+            <!-- FLOOR SHADOW -->
+            <ellipse cx="250" cy="670" rx="140" ry="20" fill="#000" opacity="0.4" filter="url(#soft-shadow)" />
+
+            <!-- STAND / BASE -->
+            <g id="base-assembly">
+                <rect x="235" y="350" width="30" height="200" fill="url(#metal-vertical)" rx="5" />
+                <circle cx="250" cy="360" r="20" fill="#333" />
+                <path d="M150 660 C 150 550, 350 550, 350 660 Z" fill="#e0e0e0" filter="url(#inner-depth)" />
+                <path d="M150 660 L 350 660 L 350 670 L 150 670 Z" fill="#999" />
+
+                <g id="controls" transform="translate(250, 630)">
+                    <rect x="-60" y="-25" width="120" height="50" rx="10" fill="#ccc" stroke="#999" stroke-width="1" />
+                    
+                    <g class="control-btn" id="btn-power" onclick="togglePower()">
+                        <circle cx="-30" cy="0" r="12" fill="#333" stroke="#111" stroke-width="2"/>
+                        <path d="M-30 -6 L-30 0 M-34 -4 A 5 5 0 1 0 -26 -4" stroke="#666" stroke-width="2" fill="none" stroke-linecap="round" id="power-icon"/>
+                    </g>
+                    
+                    <g class="knob" id="btn-speed" onclick="cycleSpeed()">
+                        <circle cx="0" cy="0" r="15" fill="#d0d0d0" stroke="#888" stroke-width="1" filter="url(#soft-shadow)" />
+                        <rect id="knob-indicator" x="-2" y="-12" width="4" height="8" fill="#333" rx="1" transform="rotate(0)"/>
+                    </g>
+
+                    <g class="control-btn" id="btn-oscillate" onclick="toggleOscillation()">
+                        <circle cx="30" cy="0" r="12" fill="#333" stroke="#111" stroke-width="2"/>
+                        <path d="M25 0 L35 0 M25 0 L28 -3 M25 0 L28 3 M35 0 L32 -3 M35 0 L32 3" stroke="#666" stroke-width="1.5" fill="none" />
+                    </g>
+                    
+                    <circle id="led-power" cx="-30" cy="18" r="2" fill="#222" />
+                    <circle id="led-speed" cx="0" cy="18" r="2" fill="#222" />
+                    <circle id="led-osc" cx="30" cy="18" r="2" fill="#222" />
+                </g>
+            </g>
+
+            <!-- HEAD ASSEMBLY (Oscillates) -->
+            <g id="head-assembly" transform="translate(250, 350)">
+                <!-- MOTOR HOUSING -->
+                <path d="M-40 -40 L40 -40 L50 40 L-50 40 Z" fill="#444" rx="10" transform="rotate(90) translate(20,0)" />
+                <ellipse cx="0" cy="0" rx="55" ry="55" fill="#222" stroke="#111" stroke-width="2" />
+
+                <g id="rear-cage" opacity="0.6"></g>
+
+                <!-- BLADES -->
+                <g id="blades-group">
+                    <g id="blade-1" transform="rotate(0)">
+                        <path d="M0 0 C 20 60, 100 120, 120 100 C 140 80, 100 -20, 0 0" fill="url(#blade-gradient)" stroke="#fff" stroke-width="0.5" opacity="0.9"/>
+                        <path d="M10 20 C 30 70, 90 110, 110 95" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round"/>
+                    </g>
+                    <g id="blade-2" transform="rotate(72)">
+                        <path d="M0 0 C 20 60, 100 120, 120 100 C 140 80, 100 -20, 0 0" fill="url(#blade-gradient)" stroke="#fff" stroke-width="0.5" opacity="0.9"/>
+                        <path d="M10 20 C 30 70, 90 110, 110 95" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round"/>
+                    </g>
+                    <g id="blade-3" transform="rotate(144)">
+                        <path d="M0 0 C 20 60, 100 120, 120 100 C 140 80, 100 -20, 0 0" fill="url(#blade-gradient)" stroke="#fff" stroke-width="0.5" opacity="0.9"/>
+                        <path d="M10 20 C 30 70, 90 110, 110 95" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round"/>
+                    </g>
+                    <g id="blade-4" transform="rotate(216)">
+                        <path d="M0 0 C 20 60, 100 120, 120 100 C 140 80, 100 -20, 0 0" fill="url(#blade-gradient)" stroke="#fff" stroke-width="0.5" opacity="0.9"/>
+                        <path d="M10 20 C 30 70, 90 110, 110 95" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round"/>
+                    </g>
+                    <g id="blade-5" transform="rotate(288)">
+                        <path d="M0 0 C 20 60, 100 120, 120 100 C 140 80, 100 -20, 0 0" fill="url(#blade-gradient)" stroke="#fff" stroke-width="0.5" opacity="0.9"/>
+                        <path d="M10 20 C 30 70, 90 110, 110 95" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round"/>
+                    </g>
+                    <circle cx="0" cy="0" r="25" fill="#333" />
+                    <circle cx="0" cy="0" r="10" fill="#111" />
+                </g>
+
+                <g id="front-cage"></g>
+
+                <!-- 中央 LOGO 圆盘 -->
+                <g transform="translate(0,0)">
+                    <circle cx="0" cy="0" r="35" fill="url(#chrome)" stroke="#888" stroke-width="2" filter="url(#soft-shadow)"/>
+                    <text x="0" y="4" text-anchor="middle" fill="#333" font-size="10" font-weight="bold" font-family="Arial">VORTEX</text>
+                    <circle cx="0" cy="0" r="30" fill="none" stroke="#ccc" stroke-width="1"/>
+                </g>
+
+                <!-- ⚠️ 绳子放在 head-assembly 最后，始终在最上层 -->
+                <g id="ribbon-group">
+                    <path id="wind-ribbon" d="M0,0 Q0,0 0,0" />
+                    <circle id="ribbon-knot" r="4" />
+                </g>
+            </g>
+        </svg>
+        <div class="controls-hint">
+            Controls: Power (Left) • Speed (Center) • Oscillate (Right)
+        </div>
+    </div>
+
+    <script>
+        // --- Procedural Generation for Cage ---
+        const createCage = (id, radius, density, strokeColor, strokeWidth) => {
+            const group = document.getElementById(id);
+            const numSpokes = 48; 
+            const numRings = 10;
+            
+            for (let i = 0; i < numSpokes; i++) {
+                const angle = (i / numSpokes) * Math.PI * 2;
+                const x2 = Math.cos(angle) * radius;
+                const y2 = Math.sin(angle) * radius;
+                
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", 0); line.setAttribute("y1", 0);
+                line.setAttribute("x2", x2); line.setAttribute("y2", y2);
+                line.setAttribute("stroke", strokeColor);
+                line.setAttribute("stroke-width", strokeWidth);
+                group.appendChild(line);
+            }
+
+            for (let i = 1; i <= numRings; i++) {
+                const r = (radius / numRings) * i;
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", 0); circle.setAttribute("cy", 0);
+                circle.setAttribute("r", r);
+                circle.setAttribute("fill", "none");
+                circle.setAttribute("stroke", strokeColor);
+                circle.setAttribute("stroke-width", strokeWidth);
+                if(id === 'front-cage') circle.setAttribute("stroke-opacity", 0.8);
+                group.appendChild(circle);
+            }
+            
+            const rim = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            rim.setAttribute("cx", 0); rim.setAttribute("cy", 0);
+            rim.setAttribute("r", radius);
+            rim.setAttribute("fill", "none");
+            rim.setAttribute("stroke", "#ddd");
+            rim.setAttribute("stroke-width", "4");
+            group.appendChild(rim);
+        };
+
+        createCage('rear-cage', 180, 20, '#333', 1);
+        createCage('front-cage', 180, 20, '#e0e0e0', 1.5);
+
+        // --- Fan State ---
+        const state = {
+            isOn: false,
+            isOscillating: false,
+            speedLevel: 1,
+            currentBladeSpeed: 0,
+            bladeAngle: 0,
+            headAngle: 0,
+            oscillationTime: 0,
+            
+            maxSpeedLow: 15,
+            maxSpeedHigh: 35,
+            acceleration: 0.2,
+            friction: 0.985,
+        };
+
+        let ribbonSettleT = 0;
+
+        // --- Ribbon Config ---
+        const ribbonAnchor = { x: 60, y: 80 }; 
+        const ribbonLength = 70;
+        const segmentLength = ribbonLength / 2;
+
+        const ribbonState = {
+            mid: { x: ribbonAnchor.x, y: ribbonAnchor.y + segmentLength, vx: 0, vy: 0 },
+            end: { x: ribbonAnchor.x, y: ribbonAnchor.y + ribbonLength, vx: 0, vy: 0 }
+        };
+
+        const bladesGroup = document.getElementById('blades-group');
+        const headAssembly = document.getElementById('head-assembly');
+        const ledPower = document.getElementById('led-power');
+        const ledSpeed = document.getElementById('led-speed');
+        const ledOsc = document.getElementById('led-osc');
+        const powerIcon = document.getElementById('power-icon');
+        const knobIndicator = document.getElementById('knob-indicator');
+        const ribbonPath = document.getElementById('wind-ribbon');
+        const ribbonKnot = document.getElementById('ribbon-knot');
+
+        ribbonKnot.setAttribute("cx", ribbonAnchor.x);
+        ribbonKnot.setAttribute("cy", ribbonAnchor.y);
+
+        // --- Web Audio: 合成风扇噪音 ---
+        let audioCtx = null;
+        let noiseSource = null;
+        let noiseGain = null;
+        let noiseFilter = null;
+        let audioReady = false;
+
+        function initAudioOnce() {
+            if (audioReady) return;
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) {
+                console.warn('Web Audio API not supported');
+                return;
+            }
+            audioCtx = new AudioContext();
+
+            const bufferSize = 2 * audioCtx.sampleRate;
+            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+
+            noiseSource = audioCtx.createBufferSource();
+            noiseSource.buffer = noiseBuffer;
+            noiseSource.loop = true;
+
+            noiseFilter = audioCtx.createBiquadFilter();
+            noiseFilter.type = 'lowpass';
+            noiseFilter.frequency.value = 500;
+
+            noiseGain = audioCtx.createGain();
+            noiseGain.gain.value = 0;
+
+            noiseSource.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseGain.connect(audioCtx.destination);
+
+            noiseSource.start();
+            audioReady = true;
+        }
+
+        function resumeAudioIfNeeded() {
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // --- Controls ---
+        function togglePower() {
+            state.isOn = !state.isOn;
+            updateLEDs();
+            powerIcon.setAttribute("stroke", state.isOn ? "#4CAF50" : "#666");
+
+            if (state.isOn) {
+                ribbonSettleT = 0;
+                initAudioOnce();
+                resumeAudioIfNeeded();
+            }
+        }
+
+        function cycleSpeed() {
+            state.speedLevel = state.speedLevel === 1 ? 2 : 1;
+            const rot = state.speedLevel === 1 ? 0 : 90;
+            knobIndicator.setAttribute("transform", `rotate(${rot})`);
+            updateLEDs();
+        }
+
+        function toggleOscillation() {
+            state.isOscillating = !state.isOscillating;
+            updateLEDs();
+        }
+
+        function updateLEDs() {
+            ledPower.setAttribute("fill", state.isOn ? "#00ff00" : "#222");
+            ledPower.setAttribute("filter", state.isOn ? "url(#led-glow)" : "");
+            ledSpeed.setAttribute("fill", state.speedLevel === 2 ? "#ffa500" : "#222");
+            ledSpeed.setAttribute("filter", state.speedLevel === 2 ? "url(#led-glow)" : "");
+            ledOsc.setAttribute("fill", state.isOscillating ? "#00ccff" : "#222");
+            ledOsc.setAttribute("filter", state.isOscillating ? "url(#led-glow)" : "");
+        }
+
+        // --- Ribbon Physics ---
+        function updateRibbonPhysics() {
+            const headRad = state.headAngle * (Math.PI / 180);
+            const windStrength = state.currentBladeSpeed / state.maxSpeedHigh;
+
+            // 世界重力 (0,+g) → 局部
+            const gMag = 0.8;
+            const gravityX = Math.sin(headRad) * gMag;
+            const gravityY = Math.cos(headRad) * gMag;
+
+            // 风的“可见分量”
+            const baseWind = 1.2 * windStrength;
+            const sideWorld = baseWind * 0.6 * Math.sin(headRad);
+            const upWorld   = -baseWind * 0.4;
+
+            const cosNeg = Math.cos(-headRad);
+            const sinNeg = Math.sin(-headRad);
+            const windLocalX = cosNeg * sideWorld - sinNeg * upWorld;
+            const windLocalY = sinNeg * sideWorld + cosNeg * upWorld;
+
+            [ribbonState.mid, ribbonState.end].forEach((node, index) => {
+                const factor = index + 1;
+
+                node.vx += gravityX;
+                node.vy += gravityY;
+
+                node.vx += windLocalX * factor;
+                node.vy += windLocalY * factor;
+
+                if (windStrength > 0.01) {
+                    const flutterStrength = 2.5 * factor;
+                    node.vx += (Math.random() - 0.5) * windStrength * flutterStrength;
+                    node.vy += (Math.random() - 0.5) * windStrength * flutterStrength;
+                }
+
+                node.vx *= 0.9;
+                node.vy *= 0.9;
+
+                node.x += node.vx;
+                node.y += node.vy;
+            });
+
+            // 约束 1: Anchor -> Mid
+            let d1x = ribbonState.mid.x - ribbonAnchor.x;
+            let d1y = ribbonState.mid.y - ribbonAnchor.y;
+            let dist1 = Math.sqrt(d1x * d1x + d1y * d1y);
+            if (dist1 > 0) {
+                const diff = (dist1 - segmentLength) / dist1;
+                ribbonState.mid.x -= d1x * diff * 0.5;
+                ribbonState.mid.y -= d1y * diff * 0.5;
+            }
+
+            // 约束 2: Mid -> End
+            let d2x = ribbonState.end.x - ribbonState.mid.x;
+            let d2y = ribbonState.end.y - ribbonState.mid.y;
+            let dist2 = Math.sqrt(d2x * d2x + d2y * d2y);
+            if (dist2 > 0) {
+                const diff = (dist2 - segmentLength) / dist2;
+                ribbonState.end.x -= d2x * diff * 0.5;
+                ribbonState.end.y -= d2y * diff * 0.5;
+                ribbonState.mid.x += d2x * diff * 0.5;
+                ribbonState.mid.y += d2y * diff * 0.5;
+            }
+
+            // 关机 + 低速：竖直对齐
+            if (!state.isOn && state.currentBladeSpeed < 1) {
+                ribbonSettleT += 0.02;
+                if (ribbonSettleT > 1) ribbonSettleT = 1;
+            } else {
+                ribbonSettleT = 0;
+            }
+
+            if (ribbonSettleT > 0) {
+                const theta = headRad;
+                const s = Math.sin(theta);
+                const c = Math.cos(theta);
+
+                const targetMid = {
+                    x: ribbonAnchor.x + s * segmentLength,
+                    y: ribbonAnchor.y + c * segmentLength
+                };
+                const targetEnd = {
+                    x: ribbonAnchor.x + s * segmentLength * 2,
+                    y: ribbonAnchor.y + c * segmentLength * 2
+                };
+
+                const t = ribbonSettleT;
+                const ease = 1 - Math.pow(1 - t, 3);
+
+                const wobbleAmp = 4 * (1 - ease);
+                const wobble = Math.sin(Date.now() * 0.03) * wobbleAmp;
+
+                ribbonState.mid.x = ribbonState.mid.x * (1 - ease) + targetMid.x * ease;
+                ribbonState.mid.y = ribbonState.mid.y * (1 - ease) + targetMid.y * ease + wobble * 0.3;
+
+                ribbonState.end.x = ribbonState.end.x * (1 - ease) + targetEnd.x * ease + wobble;
+                ribbonState.end.y = ribbonState.end.y * (1 - ease) + targetEnd.y * ease;
+
+                ribbonState.mid.vx *= 0.5;
+                ribbonState.mid.vy *= 0.5;
+                ribbonState.end.vx *= 0.5;
+                ribbonState.end.vy *= 0.5;
+            }
+
+            const dPath = `M ${ribbonAnchor.x},${ribbonAnchor.y} Q ${ribbonState.mid.x},${ribbonState.mid.y} ${ribbonState.end.x},${ribbonState.end.y}`;
+            ribbonPath.setAttribute("d", dPath);
+        }
+
+        // --- Animation Loop ---
+        function animate() {
+            const targetSpeed = state.isOn 
+                ? (state.speedLevel === 1 ? state.maxSpeedLow : state.maxSpeedHigh) 
+                : 0;
+
+            if (state.currentBladeSpeed < targetSpeed) {
+                state.currentBladeSpeed += state.acceleration;
+                if (state.currentBladeSpeed > targetSpeed) state.currentBladeSpeed = targetSpeed;
+            }
+            
+            if (state.currentBladeSpeed > targetSpeed) {
+                state.currentBladeSpeed *= state.friction;
+                if (state.currentBladeSpeed < 0.1) state.currentBladeSpeed = 0;
+            }
+
+            state.bladeAngle += state.currentBladeSpeed;
+            bladesGroup.setAttribute("transform", `rotate(${state.bladeAngle})`);
+
+            const blurOpacity = Math.max(0.4, 1 - (state.currentBladeSpeed / 60));
+            const blades = bladesGroup.querySelectorAll('path');
+            blades.forEach(b => {
+                if (b.getAttribute('fill') !== 'none') {
+                    b.setAttribute('opacity', blurOpacity);
+                }
+            });
+
+            if (state.isOscillating && state.currentBladeSpeed > 0) {
+                state.oscillationTime += 0.01;
+                state.headAngle = Math.sin(state.oscillationTime) * 45;
+            }
+            
+            headAssembly.setAttribute("transform", `translate(250, 350) rotate(${state.headAngle})`);
+
+            // 绳子物理
+            updateRibbonPhysics();
+
+            // 声音：根据当前转速 / 档位调节音量 & 音色
+            if (audioReady && noiseGain && noiseFilter) {
+                const speedNorm = state.currentBladeSpeed / state.maxSpeedHigh;
+                let targetVol = state.isOn ? speedNorm * (state.speedLevel === 2 ? 0.7 : 0.5) : 0;
+
+                const currentVol = noiseGain.gain.value;
+                noiseGain.gain.value = currentVol + (targetVol - currentVol) * 0.08;
+
+                const minFreq = 300;
+                const maxFreq = 2000;
+                noiseFilter.frequency.value = minFreq + (maxFreq - minFreq) * speedNorm;
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
