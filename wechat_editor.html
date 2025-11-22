@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>公众号排版编辑器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+      --accent: #05c160;
+      --accent-dark: #059b4d;
+      --toolbar-bg: #f5f5f5;
+      --border-color: #dcdcdc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 64px;
+    }
+
+    h1 {
+      margin-bottom: 12px;
+      color: #202124;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .subheading {
+      margin-top: 0;
+      margin-bottom: 24px;
+      color: #5f6368;
+    }
+
+    .editor-shell {
+      width: min(960px, 100%);
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 15px 45px rgba(32, 33, 36, 0.12);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(5, 193, 96, 0.15);
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 16px;
+      background: var(--toolbar-bg);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    .toolbar select,
+    .toolbar button,
+    .toolbar label {
+      border: 1px solid var(--border-color);
+      background: white;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #202124;
+    }
+
+    .toolbar button:hover,
+    .toolbar select:hover,
+    .toolbar label:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .toolbar button.active {
+      color: white;
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 5px 15px rgba(5, 193, 96, 0.35);
+    }
+
+    .toolbar input[type="color"] {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border: none;
+      background: transparent;
+    }
+
+    .toolbar input[type="file"] {
+      display: none;
+    }
+
+    .editor {
+      min-height: 540px;
+      padding: 32px 40px 48px;
+      font-size: 17px;
+      line-height: 1.9;
+      letter-spacing: 0.02em;
+      outline: none;
+    }
+
+    .editor:focus {
+      box-shadow: inset 0 0 0 2px rgba(5, 193, 96, 0.25);
+    }
+
+    .tips {
+      margin: 24px 40px 32px;
+      padding: 16px;
+      border-left: 4px solid var(--accent);
+      background: #f8fff2;
+      border-radius: 10px;
+      color: #3c4043;
+      font-size: 14px;
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 20px;
+      font-size: 14px;
+      color: #5f6368;
+      border-top: 1px solid var(--border-color);
+      background: #fafafa;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 10px 22px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: background 120ms ease, transform 120ms ease;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-dark);
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 768px) {
+      .editor {
+        padding: 24px;
+      }
+
+      .tips {
+        margin: 16px 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>公众号排版编辑器</h1>
+  <p class="subheading">快速完成图文排版，适配微信公众平台的字体与布局规范。</p>
+
+  <div class="editor-shell">
+    <div class="toolbar" id="toolbar">
+      <select id="heading">
+        <option value="p">正文</option>
+        <option value="h1">主标题</option>
+        <option value="h2">副标题</option>
+        <option value="h3">小标题</option>
+      </select>
+      <select id="fontFamily">
+        <option value="'PingFang SC', 'Microsoft YaHei', sans-serif">微信默认</option>
+        <option value="'Songti SC', 'SimSun', serif">宋体</option>
+        <option value="'STKaiti', 'KaiTi', serif">楷体</option>
+        <option value="'FZLanTingHei-DB-GBK', 'Heiti SC', sans-serif">黑体</option>
+      </select>
+      <select id="fontSize">
+        <option value="14px">14px</option>
+        <option value="16px" selected>16px</option>
+        <option value="18px">18px</option>
+        <option value="20px">20px</option>
+        <option value="24px">24px</option>
+        <option value="28px">28px</option>
+      </select>
+      <button data-command="bold">加粗</button>
+      <button data-command="italic">斜体</button>
+      <button data-command="underline">下划线</button>
+      <button data-command="strikeThrough">删除线</button>
+      <button data-command="insertUnorderedList">• 列表</button>
+      <button data-command="insertOrderedList">1. 列表</button>
+      <button data-command="justifyLeft">左对齐</button>
+      <button data-command="justifyCenter">居中</button>
+      <button data-command="justifyRight">右对齐</button>
+      <button data-command="formatBlock" data-value="blockquote">引用</button>
+      <label for="fontColor">文字颜色 <input type="color" id="fontColor" value="#333333" /></label>
+      <label for="highlight">背景色 <input type="color" id="highlight" value="#f8ffd7" /></label>
+      <label for="imageUpload">插入图片 <input type="file" accept="image/*" id="imageUpload" /></label>
+      <button id="clearFormatting">清除格式</button>
+      <button id="exportHtml" class="btn-primary">导出HTML</button>
+    </div>
+
+    <div class="editor" id="editor" contenteditable="true">
+      <h1>从这里开始创作</h1>
+      <p>把你的文字直接粘贴进来，使用上方工具进行排版、插图和配色。</p>
+      <p>最终效果可直接复制到微信公众平台后台使用。</p>
+    </div>
+
+    <div class="tips">
+      <strong>排版小提示：</strong>
+      <ul>
+        <li>正文建议使用 16~18px 字号，保持 1.6-1.9 行距可读性最佳。</li>
+        <li>标题与小标题的色彩尽量控制在 2 种以内，突出重点。</li>
+        <li>插入图片后可拖拽调整大小，上传前尽量压缩体积。</li>
+      </ul>
+    </div>
+
+    <div class="status-bar">
+      <span id="wordCount">字数：0</span>
+      <span id="lastSaved">未导出</span>
+    </div>
+  </div>
+
+  <script>
+    const editor = document.getElementById('editor');
+    const toolbar = document.getElementById('toolbar');
+    const wordCount = document.getElementById('wordCount');
+    const lastSaved = document.getElementById('lastSaved');
+
+    function applyCommand(command, value = null) {
+      document.execCommand(command, false, value);
+      editor.focus();
+    }
+
+    toolbar.addEventListener('click', (event) => {
+      const button = event.target.closest('button');
+      if (!button || button.id === 'clearFormatting' || button.id === 'exportHtml') return;
+      const command = button.dataset.command;
+      const value = button.dataset.value || null;
+      applyCommand(command, value);
+    });
+
+    document.getElementById('heading').addEventListener('change', (event) => {
+      applyCommand('formatBlock', event.target.value);
+    });
+
+    document.getElementById('fontFamily').addEventListener('change', (event) => {
+      applyCommand('fontName', event.target.value);
+    });
+
+    document.getElementById('fontSize').addEventListener('change', (event) => {
+      applyCommand('fontSize', '7');
+      const spans = window.getSelection().anchorNode?.parentNode?.parentNode?.querySelectorAll('font[size="7"]');
+      spans?.forEach((span) => {
+        span.removeAttribute('size');
+        span.style.fontSize = event.target.value;
+      });
+    });
+
+    document.getElementById('fontColor').addEventListener('input', (event) => {
+      applyCommand('foreColor', event.target.value);
+    });
+
+    document.getElementById('highlight').addEventListener('input', (event) => {
+      applyCommand('hiliteColor', event.target.value);
+    });
+
+    document.getElementById('clearFormatting').addEventListener('click', () => {
+      applyCommand('removeFormat');
+    });
+
+    document.getElementById('imageUpload').addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        applyCommand('insertImage', reader.result);
+      };
+      reader.readAsDataURL(file);
+      event.target.value = '';
+    });
+
+    document.getElementById('exportHtml').addEventListener('click', () => {
+      const blob = new Blob([editor.innerHTML], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `wechat-article-${Date.now()}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      lastSaved.textContent = `已导出：${new Date().toLocaleString()}`;
+    });
+
+    const formatButtons = Array.from(toolbar.querySelectorAll('button[data-command]'));
+    setInterval(() => {
+      formatButtons.forEach((button) => {
+        const command = button.dataset.command;
+        try {
+          button.classList.toggle('active', document.queryCommandState(command));
+        } catch (e) {
+          button.classList.remove('active');
+        }
+      });
+      const text = editor.innerText.trim();
+      wordCount.textContent = `字数：${text.length}`;
+    }, 400);
+  </script>
+</body>
+</html>
